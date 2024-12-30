@@ -3,6 +3,7 @@ from PIL import Image, ImageTk
 import random
 import time
 import os
+import pygame
 
 # 初期設定
 ASSETS_FOLDER = "assets"
@@ -29,9 +30,26 @@ MAIN_WIDTH = config["MAIN_WIDTH"]
 MAIN_HEIGHT = config["MAIN_HEIGHT"]
 SUB_WIDTH = config["SUB_WIDTH"]
 SUB_HEIGHT = config["SUB_HEIGHT"]
+ROULETTE_DEFAULT_SPEED = config["ROULETTE_DEFAULT_SPEED"]
 ROULETTE_LENGTH = config["ROULETTE_LENGTH"]
+ROULETTE_LENGTH_MARGINE = config["ROULETTE_LENGTH_MARGINE"]
+ROULETTE_ACCEL = config["ROULETTE_ACCEL"]
+ROULETTE_ACCEL_LENGTH = config["ROULETTE_ACCEL_LENGTH"]
+ROULETTE_SOUND = f"{ASSETS_FOLDER}/Ring.wav"
+STOP_SOUND = f"{ASSETS_FOLDER}/Rang.wav"
 
 selected_numbers = set()
+
+# 効果音を初期化
+def init_sound():
+    pygame.mixer.init()
+    sound_change = pygame.mixer.Sound(ROULETTE_SOUND)  # 抽選中の音
+    sound_confirm = pygame.mixer.Sound(STOP_SOUND)  # 確定時の音
+    return sound_change, sound_confirm
+
+# 効果音を再生
+def play_sound(effect):
+    effect.play()
 
 class BingoApp:
     def __init__(self, root):
@@ -86,12 +104,31 @@ class BingoApp:
             return
 
         # ルーレット演出
+        sound_change, sound_confirm = init_sound()
         selected = random.choice(available_numbers)
-        for _ in range(ROULETTE_LENGTH):  # 演出回数
-            display_num = random.randint(MIN_VALUE, MAX_VALUE)
-            self.display_number(display_num)
+        sleep_time = ROULETTE_DEFAULT_SPEED * 0.01
+        length_margine = []
+        for i in range(ROULETTE_LENGTH_MARGINE):
+            length_margine.insert(0, -i)
+            length_margine.append(i)
+        length = ROULETTE_LENGTH if ROULETTE_LENGTH > ROULETTE_LENGTH_MARGINE else ROULETTE_LENGTH_MARGINE + 1
+        length = length + random.choice(length_margine)
+        accel_length = ROULETTE_ACCEL_LENGTH if ROULETTE_ACCEL_LENGTH > 5 else 6  + random.choice([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 ])
+        numbers_array = []
+        sleep_time_array = []
+        current_number = selected
+        for i in range(length):
+            numbers_array.insert(0, current_number)
+            sleep_time_array.append(sleep_time)
+            current_number = get_previous_value(available_numbers, current_number)  # 前の値を取得
+            if not length - i > accel_length :
+                sleep_time += ROULETTE_ACCEL / 100
+        for i in range(len(numbers_array)):
+            self.display_number(numbers_array[i])
+            play_sound(sound_change)
             self.root.update()
-            time.sleep(0.05)
+            time.sleep(sleep_time_array[i])
+        play_sound(sound_confirm)
 
         # 最終選択
         self.display_number(selected)
@@ -148,6 +185,20 @@ class BingoApp:
         selected_numbers = set()
         self.display_number(0)  # デフォルト状態に戻す
         self.update_history_window()
+    
+# 特定の値の一つ前の値を取得する関数
+def get_previous_value(arr, target):
+    try:
+        # 対象値のインデックスを取得
+        index = arr.index(target)
+        # 先頭の場合は最後尾の値を返す
+        if index == 0:
+            return arr[-1]
+        # それ以外の場合は一つ前の値を返す
+        return arr[index - 1]
+    except ValueError:
+        # 対象値が見つからない場合の処理
+        return None
 
 # アプリ実行
 if __name__ == "__main__":
