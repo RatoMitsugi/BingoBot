@@ -4,6 +4,8 @@ import random
 import time
 import os
 import pygame
+import configparser
+from tkinter import simpledialog
 
 # 初期設定
 ASSETS_FOLDER = "assets"
@@ -43,13 +45,20 @@ selected_numbers = set()
 # 効果音を初期化
 def init_sound():
     pygame.mixer.init()
-    sound_change = pygame.mixer.Sound(ROULETTE_SOUND)  # 抽選中の音
-    sound_confirm = pygame.mixer.Sound(STOP_SOUND)  # 確定時の音
+    try:
+        sound_change = pygame.mixer.Sound(ROULETTE_SOUND)  # 抽選中の音
+    except pygame.error:
+        sound_change = None  # 効果音が見つからない場合はNone
+    try:
+        sound_confirm = pygame.mixer.Sound(STOP_SOUND)  # 確定時の音
+    except pygame.error:
+        sound_confirm = None  # 効果音が見つからない場合はNone
     return sound_change, sound_confirm
 
 # 効果音を再生
 def play_sound(effect):
-    effect.play()
+    if effect:  # 効果音が存在する場合のみ再生
+        effect.play()
 
 class BingoApp:
     def __init__(self, root):
@@ -85,6 +94,7 @@ class BingoApp:
         # ファイルメニュー
         file_menu = tk.Menu(self.menu, tearoff=0)
         file_menu.add_command(label="リセット", command=self.reset_game)  # リセット機能
+        file_menu.add_command(label="数字をリセット", command=self.reset_specific_number)  # 任意の数字をリセット
         self.menu.add_cascade(label="ファイル", menu=file_menu)
 
         # サブウィンドウを作成
@@ -132,8 +142,9 @@ class BingoApp:
 
         # 最終選択
         self.display_number(selected)
+        last_selected = selected
         selected_numbers.add(selected)
-        self.update_history_window()
+        self.update_history_window(last_selected)
 
     # 数字を画像で表示
     def display_number(self, number):
@@ -174,10 +185,29 @@ class BingoApp:
             self.number_labels.append(label)
 
     # 抽選履歴を更新
-    def update_history_window(self):
+    def update_history_window(self, last_selected):
         for i, label in enumerate(self.number_labels, start=MIN_VALUE):
-            color = "red" if i in selected_numbers else "black"
-            label.config(fg=color)
+            if i == last_selected:  # 最後に抽選された数字
+                label.config(fg="blue")
+            elif i in selected_numbers:  # それ以前に抽選された数字
+                label.config(fg="red")
+            else:  # 未抽選の数字
+                label.config(fg="black")
+
+    # 任意の数字をリセット
+    def reset_specific_number(self):
+        global selected_numbers, last_selected
+        number = simpledialog.askinteger("数字をリセット", f"{MIN_VALUE}～{MAX_VALUE}の数字を入力してください")
+        if number is not None and MIN_VALUE <= number <= MAX_VALUE:
+            if number in selected_numbers:
+                selected_numbers.remove(number)
+                if number == last_selected:
+                    last_selected = None  # 最後に選ばれた数字をクリア
+                self.update_history_window()
+            else:
+                tk.messagebox.showinfo("情報", f"{number} は未抽選の数字です。")
+        else:
+            tk.messagebox.showerror("エラー", f"無効な入力です。{MIN_VALUE}～{MAX_VALUE}の間の数字を入力してください。")
 
     # ゲームリセット
     def reset_game(self):

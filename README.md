@@ -66,7 +66,7 @@ SUB_HEIGHT=400
 
 ### 抽選演出の初期の速さ（サウンドファイルより短すぎると音飛びするため、調整すること）
 
-ROULETTE_DEFAULT_SPEED=4
+ROULETTE_DEFAULT_SPEED=5
 
 ### 抽選演出の長さ（ROULETTE_LENGTH_MARGINE より長い必要があります）
 
