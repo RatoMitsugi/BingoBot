@@ -34,7 +34,7 @@ Assets フォルダに、抽選中効果音と抽選完了効果音を格納し�
 抽選中効果音: Ring.wav
 抽選完了効果音: Rang.wav
 
-サンプルの効果音：
+サンプルの効果音配布元：
 https://soundeffect-lab.info/sound/button/
 
 ## 抽選する最小値、最大値(0 ～ 99)
